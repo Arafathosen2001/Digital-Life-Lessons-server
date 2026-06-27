@@ -165,6 +165,18 @@ app.post('/api/lessons/:id/like', async (req, res) => {
   }
 });
 
+app.get('/api/lessons/:id/like-status', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const userId = req.query.userId;
+    const totalLikes = await likesCollection.countDocuments({ lessonId });
+    const isLiked = userId ? await likesCollection.findOne({ lessonId, userId }) : null;
+    res.send({ totalLikes, isLiked: !!isLiked });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
 
 
 
