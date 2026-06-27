@@ -103,7 +103,28 @@ app.post('/api/lessons', async (req, res) => {
     res.status(500).send({ message: "লেসন তৈরি করতে সমস্যা হয়েছে", error });
   }
 });
+// 
+app.get('/api/lessons',verifyToken, async (req, res) => {
+  try {
+    const userId = req?.query.userId;
+    const query = userId ? { userId } : {};
+    const lessons = await lessonsCollection.find(query).toArray();
+    res.send(lessons);
+  } catch (error) {
+    res.status(500).send({ message: "Internal Server Error", error });
+  }
+});
 
+app.get('/api/lessons/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
+    const lesson = await lessonsCollection.findOne({ _id: new ObjectId(id) });
+    res.send(lesson);
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
 
 
 
