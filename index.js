@@ -64,7 +64,33 @@ app.get('/api/users', async (req, res) => {
     res.status(500).send({ message: "Users পাওয়া যায়নি", error });
   }
 });
+app.patch("/api/users/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await userCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { role: "admin" } }
+    );
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
 
+app.get('/api/user/:id', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    let query = { _id: userId };
+    if (ObjectId.isValid(userId)) {
+      query = { _id: new ObjectId(userId) };
+    }
+    const author = await userCollection.findOne(query, { projection: { password: 0 } });
+    if (!author) return res.status(404).send({ message: "Author not found" });
+    res.send(author);
+  } catch (error) {
+    res.status(500).send({ message: "Server error", error });
+  }
+});
 
 
 
