@@ -51,6 +51,23 @@ app.use(async (req, res, next) => {
   await dbConnect();
   next();
 });
+const JWKS = createRemoteJWKSet(new URL(`${process.env.BETTER_AUTH_URL}/api/auth/jwks`));
+const verifyToken = async (req, res, next) => {
+  const authHeader = req?.headers.authorization; 
+  const token = authHeader?.split(' ')[1];
+  if(!authHeader || !token){
+    return res.status(401).json({message:'Unauthorized'});
+  }
+  try {
+    const { payload } = await jwtVerify(token, JWKS)
+    console.log(payload)
+    next();
+  } catch (error) {
+    return res.status(401).json({message:'Unauthorized'})
+  }}
+// ========================================================
+// সব API রুট (এখন run ফাংশনের বাইরে, তাই Vercel এরর দিবে না)
+// ========================================================
 
 app.get('/', (req, res) => {
   res.send('Digital Lesson Server is Running...');
@@ -64,6 +81,7 @@ app.get('/api/users', async (req, res) => {
     res.status(500).send({ message: "Users পাওয়া যায়নি", error });
   }
 });
+
 app.patch("/api/users/:id", async (req, res) => {
   try {
     const id = req.params.id;
@@ -205,6 +223,7 @@ app.get('/api/lessons/:id/save-status', async (req, res) => {
     res.status(500).send({ error });
   }
 });
+
 // --- REPORT ROUTES ---
 app.post('/api/lessons/:id/report', async (req, res) => {
   try {
@@ -332,6 +351,10 @@ app.get('/api/lessons/:id/report-status', async (req, res) => {
     res.status(500).send({ error });
   }
 });
+
+
+
+
 app.delete("/api/reports/:id", async (req, res) => {
   try {
     const id = req.params.id;
