@@ -52,6 +52,33 @@ app.use(async (req, res, next) => {
   next();
 });
 
+app.get('/', (req, res) => {
+  res.send('Digital Lesson Server is Running...');
+});
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await userCollection.find().toArray();
+    res.send(users);
+  } catch (error) {
+    res.status(500).send({ message: "Users পাওয়া যায়নি", error });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // লোকালহোস্ট রান করানোর জন্য টেস্ট লিসেনার
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
