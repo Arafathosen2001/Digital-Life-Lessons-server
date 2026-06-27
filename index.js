@@ -194,6 +194,19 @@ app.post('/api/lessons/:id/save', async (req, res) => {
   }
 });
 
+app.get('/api/lessons/:id/save-status', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const userId = req.query.userId;
+    const totalSaves = await savesCollection.countDocuments({ lessonId });
+    const isSaved = userId ? await savesCollection.findOne({ lessonId, userId }) : null;
+    res.send({ totalSaves, isSaved: !!isSaved });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
+
 
 
 
