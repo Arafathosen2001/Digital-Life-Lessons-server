@@ -332,6 +332,60 @@ app.get('/api/lessons/:id/report-status', async (req, res) => {
     res.status(500).send({ error });
   }
 });
+app.delete("/api/reports/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const result = await reportsCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "Report not found",
+      });
+    }
+
+    res.send({
+      success: true,
+      message: "Report ignored successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// --- COMMENTS ROUTES ---
+app.get('/api/lessons/:id/comments', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const comments = await commentsCollection.find({ lessonId }).sort({ createdAt: -1 }).toArray();
+    res.send(comments);
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
+app.post('/api/lessons/:id/comments', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const { userId, commentText, userName, userAvatar } = req.body;
+    const newComment = {
+      lessonId, userId, commentText,
+      userName: userName || "Anonymous User",
+      userAvatar: userAvatar || "",
+      createdAt: new Date()
+    };
+    const result = await commentsCollection.insertOne(newComment);
+    res.status(201).send({ ...newComment, _id: result.insertedId });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
 
 
 
