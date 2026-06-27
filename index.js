@@ -148,6 +148,23 @@ app.delete('/api/lessons/:id', async (req, res) => {
   }
 });
 
+// --- LIKES ROUTES ---
+app.post('/api/lessons/:id/like', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const { userId } = req.body;
+    const existingLike = await likesCollection.findOne({ lessonId, userId });
+    if (existingLike) {
+      await likesCollection.deleteOne({ lessonId, userId });
+      return res.send({ liked: false, message: "Like removed" });
+    }
+    await likesCollection.insertOne({ lessonId, userId, createdAt: new Date() });
+    res.send({ liked: true, message: "Liked successfully" });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
 
 
 
