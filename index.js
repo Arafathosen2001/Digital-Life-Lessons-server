@@ -387,17 +387,38 @@ app.post('/api/lessons/:id/comments', async (req, res) => {
   }
 });
 
+// --- ADMIN ROUTES ---
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const users = await userCollection.find({}, { projection: { password: 0 } }).toArray();
+    res.send(users);
+  } catch (error) {
+    res.status(500).send({ message: "Server error" });
+  }
+});
 
+app.put('/api/admin/users/:id/role', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { role } = req.body;
+    let query = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
+    const result = await userCollection.updateOne(query, { $set: { role } });
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ message: "Server error" });
+  }
+});
 
-
-
-
-
-
-
-
-
-
+app.delete('/api/admin/users/:id', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    let query = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
+    const result = await userCollection.deleteOne(query);
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ message: "Server error" });
+  }
+});
 
 // লোকালহোস্ট রান করানোর জন্য টেস্ট লিসেনার
 if (process.env.NODE_ENV !== 'production') {
