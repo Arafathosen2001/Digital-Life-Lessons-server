@@ -177,6 +177,23 @@ app.get('/api/lessons/:id/like-status', async (req, res) => {
   }
 });
 
+// --- SAVES ROUTES ---
+app.post('/api/lessons/:id/save', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const { userId } = req.body;
+    const existingSave = await savesCollection.findOne({ lessonId, userId });
+    if (existingSave) {
+      await savesCollection.deleteOne({ lessonId, userId });
+      return res.send({ saved: false, message: "Removed from saves" });
+    }
+    await savesCollection.insertOne({ lessonId, userId, createdAt: new Date() });
+    res.send({ saved: true, message: "Saved successfully" });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
 
 
 
