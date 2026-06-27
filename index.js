@@ -92,6 +92,18 @@ app.get('/api/user/:id', async (req, res) => {
   }
 });
 
+// --- LESSONS ROUTES ---
+app.post('/api/lessons', async (req, res) => {
+  try {
+    const lesson = req.body;
+    const newlesson = { ...lesson, createdAt: new Date() };
+    const result = await lessonsCollection.insertOne(newlesson);
+    res.status(201).send(result);
+  } catch (error) {
+    res.status(500).send({ message: "লেসন তৈরি করতে সমস্যা হয়েছে", error });
+  }
+});
+
 
 
 
