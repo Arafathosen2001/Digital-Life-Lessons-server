@@ -19,17 +19,14 @@ const client = new MongoClient(uri, {
   }
 });
 
-// গ্লোবাল ভ্যারিয়েবল ডিক্লেয়ার করা হলো যেন সব রুট থেকে ডাটাবেজ এক্সেস করা যায়
 let database, userCollection, lessonsCollection, likesCollection, savesCollection, reportsCollection, commentsCollection;
 
 async function dbConnect() {
   try {
-    // সার্ভারলেস ফাংশনে বারবার কানেক্ট হওয়া রোধ করতে এই চেকটি জরুরি
     if (!database) {
       await client.connect();
       database = client.db(process.env.AUTH_DB_NAME);
       
-      // কালেকশনগুলো গ্লোবাল ভ্যারিয়েবলে অ্যাসাইন করা হচ্ছে
       userCollection = database.collection("user");
       lessonsCollection = database.collection("lessons");
       likesCollection = database.collection("likes");
@@ -45,8 +42,6 @@ async function dbConnect() {
 }
 
 
-
-// প্রতিবার রিকোয়েস্ট আসার সাথে সাথে ডাটাবেজ কানেকশন নিশ্চিত করার জন্য একটি মিডলওয়্যার
 app.use(async (req, res, next) => {
   await dbConnect();
   next();
@@ -242,7 +237,7 @@ app.post('/api/lessons/:id/report', async (req, res) => {
 });
 
 
-// ✅ Ignore all reports for a lesson
+// Ignore all reports for a lesson
 app.delete("/api/reports/:lessonId", async (req, res) => {
   try {
     const lessonId = req.params.lessonId;
@@ -276,7 +271,6 @@ app.delete("/api/reports/:lessonId", async (req, res) => {
 app.get('/api/reports', async (req, res) => {
   try {
     const reports = await reportsCollection.aggregate([
-      // lessonId কে ObjectId এ কনভার্ট
       {
         $addFields: {
           lessonObjId: {
@@ -305,7 +299,7 @@ app.get('/api/reports', async (req, res) => {
       },
       { $unwind: { path: "$lessonInfo", preserveNullAndEmptyArrays: true } },
 
-      // ✅ Reporter info join with ObjectId
+      // Reporter info join with ObjectId
       {
         $lookup: {
           from: "user",
@@ -443,12 +437,11 @@ app.delete('/api/admin/users/:id', async (req, res) => {
   }
 });
 
-// লোকালহোস্ট রান করানোর জন্য টেস্ট লিসেনার
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`Server running locally on port ${port}`);
   });
 }
 
-// Vercel Serverless Function এর জন্য এক্সপোর্ট
+// Vercel Serverless Function 
 module.exports = app;
