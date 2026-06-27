@@ -205,7 +205,133 @@ app.get('/api/lessons/:id/save-status', async (req, res) => {
     res.status(500).send({ error });
   }
 });
+// --- REPORT ROUTES ---
+app.post('/api/lessons/:id/report', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const { userId, reason } = req.body;
+    const existingReport = await reportsCollection.findOne({ lessonId, userId });
+    if (existingReport) return res.status(400).send({ message: "You have already reported this lesson." });
+    
+    const result = await reportsCollection.insertOne({
+      lessonId, userId, reason: reason || "Inappropriate content", createdAt: new Date()
+    });
+    res.status(201).send({ success: true, insertedId: result.insertedId });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
 
+
+// ✅ Ignore all reports for a lesson
+app.delete("/api/reports/:lessonId", async (req, res) => {
+  try {
+    const lessonId = req.params.lessonId;
+
+    const result = await reportsCollection.deleteMany({ lessonId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).send({
+        success: false,
+        message: "No reports found for this lesson",
+      });
+    }
+
+    res.send({
+      success: true,
+      message: "All reports for this lesson cleared successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+
+// app.get('/api/reports', async (req, res) => {
+//   const reports = await reportsCollection.find().toArray();
+//   res.send(reports);
+// });
+app.get('/api/reports', async (req, res) => {
+  try {
+    const reports = await reportsCollection.aggregate([
+      // lessonId কে ObjectId এ কনভার্ট
+      {
+        $addFields: {
+          lessonObjId: {
+            $cond: {
+              if: { $regexMatch: { input: "$lessonId", regex: /^[0-9a-fA-F]{24}$/ } },
+              then: { $toObjectId: "$lessonId" },
+              else: "$lessonId"
+            }
+          },
+          userObjId: {
+            $cond: {
+              if: { $regexMatch: { input: "$userId", regex: /^[0-9a-fA-F]{24}$/ } },
+              then: { $toObjectId: "$userId" },
+              else: "$userId"
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "lessons",
+          localField: "lessonObjId",
+          foreignField: "_id",
+          as: "lessonInfo"
+        }
+      },
+      { $unwind: { path: "$lessonInfo", preserveNullAndEmptyArrays: true } },
+
+      // ✅ Reporter info join with ObjectId
+      {
+        $lookup: {
+          from: "user",
+          localField: "userObjId",
+          foreignField: "_id",
+          as: "reporterInfo"
+        }
+      },
+      { $unwind: { path: "$reporterInfo", preserveNullAndEmptyArrays: true } },
+
+      {
+        $group: {
+          _id: "$lessonId",
+          lessonId: { $first: "$lessonId" },
+          title: { $first: "$lessonInfo.title" },
+          reports: {
+            $push: {
+              reason: "$reason",
+              reporterId: "$userId",
+              reporterName: "$reporterInfo.name"
+            }
+          },
+          reportCount: { $sum: 1 }
+        }
+      }
+    ]).toArray();
+
+    res.send(reports);
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
+
+
+app.get('/api/lessons/:id/report-status', async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const userId = req.query.userId;
+    const isReported = userId ? await reportsCollection.findOne({ lessonId, userId }) : null;
+    res.send({ isReported: !!isReported });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
 
 
 
