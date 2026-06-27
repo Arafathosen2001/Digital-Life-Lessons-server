@@ -126,6 +126,28 @@ app.get('/api/lessons/:id', async (req, res) => {
   }
 });
 
+app.put('/api/lessons/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
+    const result = await lessonsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { ...req.body } });
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
+app.delete('/api/lessons/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid ID" });
+    const result = await lessonsCollection.deleteOne({ _id: new ObjectId(id) });
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+
 
 
 
