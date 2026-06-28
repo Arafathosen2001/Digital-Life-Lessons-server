@@ -55,7 +55,7 @@ const verifyToken = async (req, res, next) => {
   }
   try {
     const { payload } = await jwtVerify(token, JWKS)
-    console.log(payload)
+    // console.log(payload)
     next();
   } catch (error) {
     return res.status(401).json({message:'Unauthorized'})
@@ -191,6 +191,66 @@ app.get('/api/lessons/:id/like-status', async (req, res) => {
 });
 
 // --- SAVES ROUTES ---
+app.get("/api/saves", async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).send({
+        success: false,
+        message: "userId is required",
+      });
+    }
+
+    const saves = await savesCollection.aggregate([
+      {
+        $match: { userId },
+      },
+      {
+        $addFields: {
+          lessonObjectId: { $toObjectId: "$lessonId" },
+        },
+      },
+      {
+        $lookup: {
+          from: "lessons",
+          localField: "lessonObjectId",
+          foreignField: "_id",
+          as: "lesson",
+        },
+      },
+      {
+        // যেসব lesson delete হয়ে গেছে সেগুলো বাদ যাবে
+        $unwind: "$lesson",
+      },
+      {
+        $project: {
+          _id: 1,
+          userId: 1,
+          lessonId: 1,
+          createdAt: 1,
+
+          title: "$lesson.title",
+          category: "$lesson.category",
+          emotionalTone: "$lesson.emotionalTone",
+        },
+      },
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+    ]).toArray();
+
+    res.send(saves);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 app.post('/api/lessons/:id/save', async (req, res) => {
   try {
     const lessonId = req.params.id;
@@ -202,6 +262,20 @@ app.post('/api/lessons/:id/save', async (req, res) => {
     }
     await savesCollection.insertOne({ lessonId, userId, createdAt: new Date() });
     res.send({ saved: true, message: "Saved successfully" });
+  } catch (error) {
+    res.status(500).send({ error });
+  }
+});
+app.delete('/api/saves', async (req, res) => {
+  try {
+    const { lessonId, userId } = req.query; // অথবা req.body থেকে নিতে পারেন
+    const result = await savesCollection.deleteOne({ lessonId, userId });
+    
+    if (result.deletedCount > 0) {
+      res.send({ success: true, message: "Removed from favorites successfully" });
+    } else {
+      res.status(404).send({ success: false, message: "Favorite item not found" });
+    }
   } catch (error) {
     res.status(500).send({ error });
   }
